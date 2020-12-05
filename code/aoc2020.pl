@@ -35,6 +35,35 @@ list_of_n_items(N, Item, [Item|Out]):-
     N1 is N-1,
     list_of_n_items(N1, Item, Out).
 
+%% Turns out bloody prolog doesn't have builtin
+%% support for converting binary to decimal...
+%
+% Fails if input isn't a nameable sequence of
+% 1 and 0.
+% Note that: name('01', [48, 49]).
 
+binary_to_decimal(BinaryAtom, Int):-
+    ground(BinaryAtom),
+    name(BinaryAtom, BinaryListRev),
+    reverse(BinaryListRev, BinaryList),
+    binary_to_decimal(BinaryList, 1, Int).
+
+binary_to_decimal([], _, 0).
+binary_to_decimal([48|Bits], Pow, IntOut):-
+    Pow1 is Pow*2,
+    binary_to_decimal(Bits, Pow1, IntOut).
+binary_to_decimal([49|Bits], Pow, IntOut):-
+    Pow1 is Pow*2,
+    binary_to_decimal(Bits, Pow1, IntOut1),
+    IntOut is IntOut1+Pow.
+
+
+% Get the contents of a file as a list of
+% strings
+get_input_as_list(FileName, Out):-
+    open(FileName, read, Stream),
+    read_string(Stream, _Length, FileContents),
+    split_string(FileContents, "\n", "", Out),
+    close(Stream).
 
 

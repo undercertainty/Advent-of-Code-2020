@@ -60,10 +60,7 @@ binary_to_decimal([49|Bits], Pow, IntOut):-
 
 % Get the contents of a file as a list of
 % strings
-get_input_as_list(FileName, Out):-
-    open(FileName, read, Stream),
-    read_string(Stream, _Length, FileContents),
-    split_string(FileContents, "\n", "", Out),
-    close(Stream).
-
+read_file_to_list(FileName, Out):-
+    read_file_to_string(FileName, InputString, []),
+    split_string(InputString, "\n", "", Out).
 

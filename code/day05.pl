@@ -6,18 +6,18 @@
 :- ['code/aoc2020.pl'].
 
 test01(X):-
-    solve_day04a('code/data/day05_test', X).
+    solve_day05a('code/data/day05_test', X).
 
 % ?- test01(X).
 % X = 820.
 
 test02(X):-
-    solve_day04a('code/data/day05_input', X).
+    solve_day05a('code/data/day05_input', X).
 
 % ?- test02(X).
 % X = 226 .
 
-solve_day04a(FileName, Out):-
+solve_day05a(FileName, Out):-
     get_input_as_list(FileName, InputStrings),
     maplist(string_to_seat_id, InputStrings, SeatIDs),
     max_list(SeatIDs, Out).
@@ -44,7 +44,7 @@ string_to_seat_id(SeatString, SeatID):-
 
 
 test03(X):-
-    solve_day04b('code/data/day05_input', X).
+    solve_day05b('code/data/day05_input', X).
 
 % ?- test03(X).
 % X = 527 ;
@@ -53,7 +53,7 @@ test03(X):-
 % OK, if my seat ± 1 is in the list, just sort the
 % IDs of the seats in the list, and find the gap:
 
-solve_day04b(FileName, Out):-
+solve_day05b(FileName, Out):-
     get_input_as_list(FileName, InputStrings),
     maplist(string_to_seat_id, InputStrings, ListOfSeatIDs),
     sort(ListOfSeatIDs, SortedList),

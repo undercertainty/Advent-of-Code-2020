@@ -3,10 +3,7 @@
 % instead of regexps
 
 :- use_module(library(lists)).
-:- use_module(library(apply)).
 :- use_module(library(dcg/basics)).
-
-:- ['code/aoc2020.pl'].
 
 test01(X):-
     solve_day07a('code/data/day07_test', shiny-gold, X).

@@ -1,121 +1,150 @@
-% Still pathologically using prolog
 
-:- use_module(library(apply)).
-:- use_module(library(occurs)).
 :- use_module(library(lists)).
+:- use_module(library(pcre)).
+:- use_module(library(apply)).
 
-% Get the list of  input structures
+:- ['code/aoc2020.pl'].
 
-get_input(FileName, OutputString):-
-    read_file_to_string('code/data/day04_test', Out, []), re_split('\n\n', Out, O).
+test01(X):-
+    solve_day04a('code/data/day04_test', X).
 
+test02(X):-
+    solve_day04a('code/data/day04_input', X).
 
+% ?- test02(X).
+% X = 226 .
 
-
-
-
-% I think it will be useful to have a predicate which creates a 
-% list of modulo values:
-
-create_modulo_list(Length, Start, Step, Floor, Out):-
-    Start1 is Start mod Floor,
-    create_modulo_list(Length, Start1, Step, Floor, [], Out).
-
-create_modulo_list(0, _, _, _, RevOut, Out):-
-    reverse(RevOut, Out).
-create_modulo_list(N, Pos, Step, Floor, SoFar, Out):-
-    N>0,
-    N1 is N-1,
-    Pos1 is (Pos+Step) mod Floor,
-    create_modulo_list(N1, Pos1, Step, Floor, [Pos|SoFar], Out).
+solve_day04a(FileName, Out):-
+    get_input(FileName, InputString),
+    re_split('\n\n', InputString, [SI|SplitInput]),
+    every_nth_member(2, SplitInput, PassportStrings),
+    maplist(string_to_passport_dict, [SI|PassportStrings], PassportDicts),
+    partition(valid_passport, PassportDicts, ValidPassports, _),
+    length(ValidPassports, Out).
 
 
-% Get the input as a list of strings
+% Start by loading the input string:
 
-get_input_as_list(FileName, Out):-
+get_input(FileName, FileContents):-
     open(FileName, read, Stream),
     read_string(Stream, _Length, FileContents),
-    split_string(FileContents, "\n", "\r", Out), % Seem to need "\r" for windows
     close(Stream).
 
+% Convert a string representation of a passport to a
+% dictionary representation
 
-% To solve, want to know what the n0th character
-% is for each row of the output
+string_to_passport_dict(String, Dict):-
+    re_findall('(?P<field>\\w+):(?P<value>\\S+)', String, _Matches, Dicts),
+    convert_passport_dict(Dicts, Dict).
 
-solve_day03a(FileName, Out):-
-    get_input_as_list(FileName, Lines),
-    maplist(string_chars, Lines, [First|Rest]),
-    length(Lines, N),
-    length(First, Floor),
-    create_modulo_list(N, 0, 3, Floor, ModList),
-    maplist(nth0, ModList, [First|Rest], ListOut),
-    occurrences_of_term(#, ListOut, Out).
+% Something I don't get about dict keys that it's too
+% late to figure out now, so I'll just go with a list
+% of pairs
+
+convert_passport_dict([Dict|Dicts], [Key:Dict.value|Out]):-
+    string_to_atom(Dict.field, Key),
+    convert_passport_dict(Dicts, Out).
+convert_passport_dict([], []).
+
+% A dictionary-encoded passport is valid if it contains
+% each of the fields ecl, pid, eyr, hcl, byr, iyr
+% cid, hgt
+% although for the first part, we're cheating with cid
+
+valid_passport(DictPassport):-
+    subset([ecl:_, pid:_, eyr:_, hcl:_, byr:_, iyr:_, hgt:_], DictPassport).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Part 02
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Blimey, that was dull. Anyway...
+
+test_03(X):-
+    solve_day04b('code/data/day04_input', X).
+
+% ?- test_03(X).
+% X = 160 .
+
+solve_day04b(FileName, Out):-
+    get_input(FileName, InputString),
+    re_split('\n\n', InputString, [SI|SplitInput]),
+    every_nth_member(2, SplitInput, PassportStrings),
+    maplist(string_to_passport_dict, [SI|PassportStrings], PassportDicts),
+    partition(valid_passport_b, PassportDicts, ValidPassports, _),
+    length(ValidPassports, Out).
 
 
-test_day03a(Out):-
-    solve_day03a('code/data/day03_test', Out).
+% OK, this is just a slog. We'll go through the
+% fields in the order they're given in the spec:
 
-/*******************************
- 
-?- solve_day03a('code/data/day03_input', Out).
-Out = 176
+valid_passport_b(DictPassport):-
+    valid_passport_byr(DictPassport),
+    valid_passport_iyr(DictPassport),
+    valid_passport_eyr(DictPassport),
+    valid_passport_hgt(DictPassport),
+    valid_passport_ecl(DictPassport),
+    valid_passport_hcl(DictPassport),
+    valid_passport_pid(DictPassport).
 
- ********************************/
+% Birth year first
+valid_passport_byr(DictPassport):-
+    member(byr:BYR_S, DictPassport),
+    string_to_atom(BYR_S, BYR_A),
+    atom_number(BYR_A, BYR),
+    integer(BYR),
+    BYR>=1920,
+    BYR=<2002.
 
-% OK, part 2...
+valid_passport_iyr(DictPassport):-
+    member(iyr:IYR_S, DictPassport),
+    string_to_atom(IYR_S, IYR_A),
+    atom_number(IYR_A, IYR),
+    integer(IYR),
+    IYR>=2010,
+    IYR=<2020.
 
-% Looks as though we need to step down the vertical
-% axis, as well as move along the horizontal axis.
+valid_passport_eyr(DictPassport):-
+    member(eyr:EYR_S, DictPassport),
+    string_to_atom(EYR_S, EYR_A),
+    atom_number(EYR_A, EYR),
+    integer(EYR),
+    EYR>=2020,
+    EYR=<2030.
 
-% So if we're moving Dy vertically at each step, want to
-% step down Dy and across Dx for each step. This is 
-% easier than I made it before...
+valid_passport_hgt(DictPassport):-
+    member(hgt:HGT_S, DictPassport),
+    name(HGT_S, HGT_LS),
+    name("in", IN_LS),
+    append(HGT_N_LS, IN_LS, HGT_LS),
+    name(HGT_N, HGT_N_LS),
+    number(HGT_N),
+    HGT_N>=59,
+    HGT_N=<76.
 
-% find_path(+StartX, +StartY, +Dx, +Dy, +Map, -ListOfPoints)
+valid_passport_hgt(DictPassport):-
+    member(hgt:HGT_S, DictPassport),
+    name(HGT_S, HGT_LS),
+    name("cm", IN_LS),
+    append(HGT_N_LS, IN_LS, HGT_LS),
+    name(HGT_N, HGT_N_LS),
+    number(HGT_N),
+    HGT_N>=150,
+    HGT_N=<193.
 
-find_path(X, Y, Dx, Dy, FileName, Path):-
-    get_input_as_list(FileName, FileAsListOfStrings),
-    maplist(string_chars, FileAsListOfStrings, [MapHead|MapRest]),
-    length([MapHead|MapRest], Height),
-    length(MapHead, Width),
-    find_path(X, Y, Dx, Dy, [MapHead|MapRest], Width, Height, DL-DL, Path).
+valid_passport_hcl(DictPassport):-
+    member(hcl:HCL_STR, DictPassport),
+    re_match('^#[0-9a-f]{6}$', HCL_STR).
 
-find_path(X, Y, Dx, Dy, Map, Width, Height, SoFar-[P|DL], Out):-
-    Y<Height,
-    nth0(Y, Map, Row),
-    nth0(X, Row, P),
-    X1 is (X+Dx) mod Width,
-    Y1 is Y+Dy,
-    find_path(X1, Y1, Dx, Dy, Map, Width, Height, SoFar-DL, Out).
+valid_passport_ecl(DictPassport):-
+    member(ecl:ECL_STR, DictPassport),
+    member(ECL_STR, ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"]).
 
-find_path(_, Y, _Dx, _Dy, _Map, _Width, Height, Out-[], Out):-
-    Y>=Height.
+valid_passport_pid(DictPassport):-
+    member(pid:PID_STR, DictPassport),
+    re_match('^\\d{9}$', PID_STR).
 
-% Quick function to multiply the members
-% of a list together:
-list_product([X], X).
-list_product([Next|Rest], Out):-
-    list_product(Rest, R1),
-    Out is R1 * Next.
 
-% Now, for the whole part b,  call with lists of coords:
 
-solve_day03b(FileName, ListOfCoords, Out):-
-    solve_day_03b_(FileName, ListOfCoords, ListOutputs),
-    list_product(ListOutputs, Out).
-
-solve_day_03b_(_FileName, [], []).
-solve_day_03b_(FileName, [(Dx, Dy)|Rest], [TreesInPath|Out]):-
-    find_path(0, 0, Dx, Dy, FileName, Path),
-    occurrences_of_term(#, Path, TreesInPath),
-    solve_day_03b_(FileName, Rest, Out).
-
-test2(Out):-
-    solve_day03b('code/data/day03_test', [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)], Out).
-
-/*******************************
- 
-?- solve_day03b('code/data/day03_input', [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)], Out).
-Out = 5872458240 .
-
- ********************************/

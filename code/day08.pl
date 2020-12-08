@@ -103,13 +103,11 @@ test(4, X):-
 solve_day08b(FileName, Out, part(b)):-
     read_file_to_codes(FileName, Codes, []),
     phrase(game_code(GameCode), Codes, []),
-    % Replace a nop with a jmp:
-    select(nop:ARG, GameCode, jmp:ARG, ModifiedGameCode),
-    execute_code(ModifiedGameCode, 0, 0, [], Out, [part(b)]).
-
-solve_day08b(FileName, Out, part(b)):-
-    read_file_to_codes(FileName, Codes, []),
-    phrase(game_code(GameCode), Codes, []),
-    % Replace a jmp with a nop:
-    select(jmp:ARG, GameCode, nop:ARG, ModifiedGameCode),
+    (
+        % Replace a nop with a jmp:
+        select(nop:ARG, GameCode, jmp:ARG, ModifiedGameCode)
+        ;
+        % Replace a jmp with a nop:
+        select(jmp:ARG, GameCode, nop:ARG, ModifiedGameCode)
+    ),
     execute_code(ModifiedGameCode, 0, 0, [], Out, [part(b)]).
